@@ -1,6 +1,7 @@
 #include <windows.h>
 
-#include "window.h"
+#include "source\window.h"
+#include "source\d3d.h"
 
 LRESULT CALLBACK WindowProc(
     HWND windowHandle,
@@ -8,12 +9,24 @@ LRESULT CALLBACK WindowProc(
     WPARAM wParam,
     LPARAM lParam);
 
+// for std::cout
+void initConsole()
+{
+    AllocConsole();
+    FILE *dummy;
+    auto s = freopen_s(&dummy, "CONOUT$", "w", stdout);
+}
+
 int WINAPI WinMain(
     HINSTANCE instanceHandle,
     HINSTANCE prevInstanceHandle, // outdated thing
     LPSTR cmdLine,
     int cmdShow)
 {
+    initConsole();
+
+    Direct3D::Init();
+
     Window window(
         instanceHandle,
         WindowProc,
@@ -26,11 +39,10 @@ int WINAPI WinMain(
     MSG msg;
     while (true)
     {
-        // while there are messages in the queue
         while (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE))
         {
-            TranslateMessage(&msg); // translate keystroke messages into the right format
-            DispatchMessage(&msg); // send the message to the WindowProc()
+            TranslateMessage(&msg);
+            DispatchMessage(&msg);
 
             if (msg.message == WM_QUIT) goto exit;
         }
@@ -39,6 +51,8 @@ int WINAPI WinMain(
     }
 
 exit:
+    Direct3D::Deinit();
+
     return static_cast<int>(msg.wParam);
 }
 

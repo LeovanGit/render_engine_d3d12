@@ -3,7 +3,12 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.7.34031.279
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "render_engine", "render_engine\render_engine.vcxproj", "{94086611-0A35-485C-868E-A60E8C02A60D}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "project", "project\project.vcxproj", "{9F92B06D-3B5E-4915-B78C-1250F1BAC0BF}"
+	ProjectSection(ProjectDependencies) = postProject
+		{94086611-0A35-485C-868E-A60E8C02A60D} = {94086611-0A35-485C-868E-A60E8C02A60D}
+	EndProjectSection
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "engine", "engine\engine.vcxproj", "{94086611-0A35-485C-868E-A60E8C02A60D}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -13,6 +18,14 @@ Global
 		Release|x86 = Release|x86
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{9F92B06D-3B5E-4915-B78C-1250F1BAC0BF}.Debug|x64.ActiveCfg = Debug|x64
+		{9F92B06D-3B5E-4915-B78C-1250F1BAC0BF}.Debug|x64.Build.0 = Debug|x64
+		{9F92B06D-3B5E-4915-B78C-1250F1BAC0BF}.Debug|x86.ActiveCfg = Debug|Win32
+		{9F92B06D-3B5E-4915-B78C-1250F1BAC0BF}.Debug|x86.Build.0 = Debug|Win32
+		{9F92B06D-3B5E-4915-B78C-1250F1BAC0BF}.Release|x64.ActiveCfg = Release|x64
+		{9F92B06D-3B5E-4915-B78C-1250F1BAC0BF}.Release|x64.Build.0 = Release|x64
+		{9F92B06D-3B5E-4915-B78C-1250F1BAC0BF}.Release|x86.ActiveCfg = Release|Win32
+		{9F92B06D-3B5E-4915-B78C-1250F1BAC0BF}.Release|x86.Build.0 = Release|Win32
 		{94086611-0A35-485C-868E-A60E8C02A60D}.Debug|x64.ActiveCfg = Debug|x64
 		{94086611-0A35-485C-868E-A60E8C02A60D}.Debug|x64.Build.0 = Debug|x64
 		{94086611-0A35-485C-868E-A60E8C02A60D}.Debug|x86.ActiveCfg = Debug|Win32

@@ -1,0 +1,3 @@
+[submodule "external/d3d12_extended"]
+	path = external/d3d12_extended
+	url = https://github.com/microsoft/DirectX-Headers
