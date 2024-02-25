@@ -3,7 +3,7 @@
 #include <windows.h>
 #include <stdint.h>
 
-#include "common/common.h"
+#include "utils/common.h"
 #include "d3d.h"
 
 struct Size

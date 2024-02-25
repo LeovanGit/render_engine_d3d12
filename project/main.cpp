@@ -1,7 +1,10 @@
 #include <windows.h>
 
+#include <string>
+
 #include "source\window.h"
 #include "source\d3d.h"
+#include "source\timer.h"
 
 LRESULT CALLBACK WindowProc(
     HWND windowHandle,
@@ -16,6 +19,11 @@ void initConsole()
     FILE *dummy;
     auto s = freopen_s(&dummy, "CONOUT$", "w", stdout);
 }
+
+namespace
+{
+constexpr float k_frameTime = 1.0f / 60.0f;
+} // namespace
 
 int WINAPI WinMain(
     HINSTANCE instanceHandle,
@@ -36,6 +44,8 @@ int WINAPI WinMain(
         800,
         600);
 
+    Timer timer;
+
     MSG msg;
     while (true)
     {
@@ -47,7 +57,23 @@ int WINAPI WinMain(
             if (msg.message == WM_QUIT) goto exit;
         }
 
-        // game code
+        if (timer.IsElapsed(k_frameTime))
+        {
+            float delta_time = timer.GetDeltaTime();
+            float fps = 1.0f / delta_time;
+
+            std::wstring windowText =
+                L"fps: " + std::to_wstring(fps) +
+                L"\ndt: " + std::to_wstring(delta_time);
+
+            RECT rect = { 2, 2, 74, 48 };
+            DrawText(
+                GetDC(window.m_windowHandle),
+                windowText.c_str(),
+                windowText.size(),
+                &rect,
+                DT_LEFT | DT_TOP);
+        }
     }
 
 exit:

@@ -2,8 +2,8 @@
 
 #include <iostream>
 
-#include "common/common.h"
-#include "common/non_copyable.h"
+#include "utils/common.h"
+#include "utils/non_copyable.h"
 
 class Direct3D : public NonCopyable
 {
@@ -26,10 +26,10 @@ private:
     Direct3D();
     ~Direct3D();
 
+    static Direct3D *s_instance;
+
     void CreateDevice();
 
     void CreateFence();
     void CreateCommandObjects();
-
-    static Direct3D *m_instance;
 };

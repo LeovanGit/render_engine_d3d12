@@ -24,6 +24,9 @@
     <ClCompile Include="source\renderer.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="source\timer.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="source\d3d.h">
@@ -32,13 +35,16 @@
     <ClInclude Include="source\window.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="common\non_copyable.h">
+    <ClInclude Include="utils\non_copyable.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="common\common.h">
+    <ClInclude Include="utils\common.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="source\renderer.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="source\timer.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

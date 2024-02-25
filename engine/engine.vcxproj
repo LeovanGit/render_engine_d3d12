@@ -21,13 +21,15 @@
   <ItemGroup>
     <ClCompile Include="source\d3d.cpp" />
     <ClCompile Include="source\renderer.cpp" />
+    <ClCompile Include="source\timer.cpp" />
     <ClCompile Include="source\window.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="common\common.h" />
-    <ClInclude Include="common\non_copyable.h" />
+    <ClInclude Include="utils\common.h" />
+    <ClInclude Include="utils\non_copyable.h" />
     <ClInclude Include="source\d3d.h" />
     <ClInclude Include="source\renderer.h" />
+    <ClInclude Include="source\timer.h" />
     <ClInclude Include="source\window.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">

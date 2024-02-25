@@ -1,28 +1,28 @@
 #include "d3d.h"
 
-Direct3D *Direct3D::m_instance = nullptr;
+Direct3D *Direct3D::s_instance = nullptr;
 
 void Direct3D::Init()
 {
-    if (!m_instance)
-        m_instance = new Direct3D;
+    if (!s_instance)
+        s_instance = new Direct3D;
     else
         std::cout << "Direct3D::Init() was called twice!\n";
 }
 
 const Direct3D *Direct3D::GetInstance()
 {
-    assert(m_instance && "Direct3D is not initialized!");
+    assert(s_instance && "Direct3D is not initialized!");
 
-    return m_instance;
+    return s_instance;
 }
 
 void Direct3D::Deinit()
 {
-    if (m_instance)
+    if (s_instance)
     {
-        delete m_instance;
-        m_instance = nullptr;
+        delete s_instance;
+        s_instance = nullptr;
     }
     else
         std::cout << "Direct3D::Deinit() was called before Direct3D::Init() or twice!\n";
