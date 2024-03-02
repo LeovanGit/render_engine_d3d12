@@ -1,11 +1,16 @@
 #pragma once
 
+#include "d3dx12.h"
+
 #include "window.h"
+#include "d3d.h"
 
 class Renderer
 {
 public:
-    Renderer(const Window &window);
+    Renderer(const Window *window);
+
+    void Render();
 
 private:
     void CreateDescriptorHeaps();
@@ -13,12 +18,15 @@ private:
 
     void CreateDepthStencilBuffer(const Size &windowClientSize);
     void CreateDepthStencilView();
+    void ClearDepthStencilView();
+    void BindDepthStencilBuffer();
 
 public:
+    const Window *m_window;
+
     wrl::ComPtr<ID3D12DescriptorHeap> m_dsvHeap;
     UINT m_dsvDescriptorSize;
 
     static const DXGI_FORMAT m_depthStencilBufferFormat = DXGI_FORMAT_D24_UNORM_S8_UINT;
-
     wrl::ComPtr<ID3D12Resource> m_depthStencilBuffer;
 };

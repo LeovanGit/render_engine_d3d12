@@ -1,12 +1,33 @@
 #include "renderer.h"
 
-Renderer::Renderer(const Window &window)
+Renderer::Renderer(const Window *window)
+    : m_window(window)
 {
-    Size windowClientSize = window.GetClientSize();
+    Size windowClientSize = m_window->GetClientSize();
 
     CreateDescriptorHeaps();
     CreateDepthStencilBuffer(windowClientSize);
     CreateDepthStencilView();
+}
+
+void Renderer::Render()
+{
+    const Direct3D *d3d = Direct3D::GetInstance();
+
+    d3d->ResetCommandList(); // start recording commands
+
+    m_window->BindViewports();
+    m_window->BindScissorRects();
+
+    BindDepthStencilBuffer();
+    m_window->BindRenderTarget(GetDepthStencilView());
+
+    d3d->CloseCommandList(); // done recording commands
+    d3d->ExecuteCommandList();
+
+    m_window->SwapBackBuffers();
+
+    d3d->FlushCommandQueue();
 }
 
 void Renderer::CreateDescriptorHeaps()
@@ -57,14 +78,7 @@ void Renderer::CreateDepthStencilBuffer(const Size &windowClientSize)
     clearValue.DepthStencil.Stencil = 0;
 
     // resource heap (in VRAM), not related with descriptors heap:
-    // in the future: &CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT)
-    D3D12_HEAP_PROPERTIES heapProperties;
-    ZeroMemory(&heapProperties, sizeof(heapProperties));
-    heapProperties.Type = D3D12_HEAP_TYPE_DEFAULT;
-    heapProperties.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
-    heapProperties.MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN;
-    heapProperties.CreationNodeMask = 1;
-    heapProperties.VisibleNodeMask = 1;
+    D3D12_HEAP_PROPERTIES heapProperties = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT);
 
     D3D_ASSERT(d3d->m_device->CreateCommittedResource(
         &heapProperties,
@@ -84,22 +98,36 @@ void Renderer::CreateDepthStencilView()
         m_depthStencilBuffer.Get(),
         nullptr,
         GetDepthStencilView());
+}
 
-    // transition (change state) resource from initial state to depth buffer
-    D3D12_RESOURCE_BARRIER transitionBarrier;
-    ZeroMemory(&transitionBarrier, sizeof(transitionBarrier));
-    transitionBarrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
-    transitionBarrier.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
-    transitionBarrier.Transition.pResource = m_depthStencilBuffer.Get();
-    transitionBarrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
-    transitionBarrier.Transition.StateBefore = D3D12_RESOURCE_STATE_COMMON;
-    transitionBarrier.Transition.StateAfter = D3D12_RESOURCE_STATE_DEPTH_WRITE;
+void Renderer::ClearDepthStencilView()
+{
+    const Direct3D *d3d = Direct3D::GetInstance();
 
+    d3d->m_commandList->ClearDepthStencilView(
+        GetDepthStencilView(),
+        D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL,
+        1.0f,
+        0,
+        0,
+        nullptr);
+}
+
+void Renderer::BindDepthStencilBuffer()
+{
+    const Direct3D *d3d = Direct3D::GetInstance();
+
+    D3D12_RESOURCE_BARRIER transitionBarrier = CD3DX12_RESOURCE_BARRIER::Transition(
+        m_depthStencilBuffer.Get(),
+        D3D12_RESOURCE_STATE_COMMON,
+        D3D12_RESOURCE_STATE_DEPTH_WRITE);
     d3d->m_commandList->ResourceBarrier(1, &transitionBarrier);
 
-    // in the future:
-    //&CD3DX12_RESOURCE_BARRIER::Transition(
-    //    m_depthStencilBuffer.Get(),
-    //    D3D12_RESOURCE_STATE_COMMON,
-    //    D3D12_RESOURCE_STATE_DEPTH_WRITE)
+    ClearDepthStencilView();
+
+    transitionBarrier = CD3DX12_RESOURCE_BARRIER::Transition(
+        m_depthStencilBuffer.Get(),
+        D3D12_RESOURCE_STATE_DEPTH_WRITE,
+        D3D12_RESOURCE_STATE_COMMON);
+    d3d->m_commandList->ResourceBarrier(1, &transitionBarrier);
 }

@@ -48,6 +48,84 @@ Size Window::GetClientSize() const
     return { m_clientWidth, m_clientHeight };
 }
 
+ID3D12Resource * Window::GetCurrentBackBuffer() const
+{
+    return m_backBuffers[m_currentBackBuffer].Get();
+}
+
+D3D12_CPU_DESCRIPTOR_HANDLE Window::GetCurrentBackBufferView() const
+{
+    return GetBackBufferView(m_currentBackBuffer);
+}
+
+D3D12_CPU_DESCRIPTOR_HANDLE Window::GetBackBufferView(uint8_t backBufferIndex) const
+{
+    return CD3DX12_CPU_DESCRIPTOR_HANDLE(
+        m_rtvHeap->GetCPUDescriptorHandleForHeapStart(),
+        backBufferIndex,
+        m_rtvDescriptorSize);
+}
+
+void Window::BindViewports() const
+{
+    const Direct3D *d3d = Direct3D::GetInstance();
+
+    d3d->m_commandList->RSSetViewports(1, &m_viewport);
+
+}
+
+void Window::BindScissorRects() const
+{
+    const Direct3D *d3d = Direct3D::GetInstance();
+
+    d3d->m_commandList->RSSetScissorRects(1, &m_scissorRect);
+}
+
+void Window::BindRenderTarget(D3D12_CPU_DESCRIPTOR_HANDLE depthStencilView) const
+{
+    const Direct3D *d3d = Direct3D::GetInstance();
+
+    D3D12_RESOURCE_BARRIER transitionBarrier = CD3DX12_RESOURCE_BARRIER::Transition(
+        GetCurrentBackBuffer(),
+        D3D12_RESOURCE_STATE_PRESENT,
+        D3D12_RESOURCE_STATE_RENDER_TARGET);
+    d3d->m_commandList->ResourceBarrier(1, &transitionBarrier);
+    
+    ClearRenderTargetView();
+
+    D3D12_CPU_DESCRIPTOR_HANDLE backBufferView = GetCurrentBackBufferView();
+    d3d->m_commandList->OMSetRenderTargets(
+        1,
+        &backBufferView,
+        true,
+        &depthStencilView);
+
+    transitionBarrier = CD3DX12_RESOURCE_BARRIER::Transition(
+        GetCurrentBackBuffer(),
+        D3D12_RESOURCE_STATE_RENDER_TARGET,
+        D3D12_RESOURCE_STATE_PRESENT);
+    d3d->m_commandList->ResourceBarrier(1, &transitionBarrier);
+}
+
+void Window::ClearRenderTargetView() const
+{
+    const Direct3D *d3d = Direct3D::GetInstance();
+
+    d3d->m_commandList->ClearRenderTargetView(
+        GetCurrentBackBufferView(),
+        k_clearColor,
+        0,
+        nullptr);
+}
+
+void Window::SwapBackBuffers() const
+{
+    // swap back and front buffers
+    D3D_ASSERT(m_swapChain->Present(0, 0));
+
+    m_currentBackBuffer = (m_currentBackBuffer + 1) % m_swapChainBufferCount;
+}
+
 void Window::CreateWindowClass(HINSTANCE instanceHandle, WNDPROC windowProc)
 {
     WNDCLASSEX windowClass;
@@ -108,15 +186,6 @@ void Window::CreateDescriptorHeaps()
     m_rtvDescriptorSize = d3d->m_device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
 }
 
-D3D12_CPU_DESCRIPTOR_HANDLE Window::GetBackBufferView(uint8_t backBufferIndex) const
-{
-    // first descriptor in heap
-    D3D12_CPU_DESCRIPTOR_HANDLE handle = m_rtvHeap->GetCPUDescriptorHandleForHeapStart();
-    handle.ptr += backBufferIndex * m_rtvDescriptorSize;
-
-    return handle;
-}
-
 void Window::CreateBackBuffers()
 {
     const Direct3D *d3d = Direct3D::GetInstance();
@@ -134,30 +203,20 @@ void Window::CreateBackBuffers()
 
 void Window::CreateViewport()
 {
-    const Direct3D *d3d = Direct3D::GetInstance();
-
-    D3D12_VIEWPORT viewport;
-    ZeroMemory(&viewport, sizeof(viewport));
-    viewport.TopLeftX = 0.0f;
-    viewport.TopLeftY = 0.0f;
-    viewport.Width = static_cast<float>(m_clientWidth);
-    viewport.Height = static_cast<float>(m_clientHeight);
-    viewport.MinDepth = 0.0f;
-    viewport.MaxDepth = 1.0f;
-
-    d3d->m_commandList->RSSetViewports(1, &viewport);
+    ZeroMemory(&m_viewport, sizeof(m_viewport));
+    m_viewport.TopLeftX = 0.0f;
+    m_viewport.TopLeftY = 0.0f;
+    m_viewport.Width = static_cast<float>(m_clientWidth);
+    m_viewport.Height = static_cast<float>(m_clientHeight);
+    m_viewport.MinDepth = 0.0f;
+    m_viewport.MaxDepth = 1.0f;
 }
 
 void Window::CreateScissorRectangles()
 {
-    const Direct3D *d3d = Direct3D::GetInstance();
-
-    D3D12_RECT scissorRect;
-    ZeroMemory(&scissorRect, sizeof(scissorRect));
-    scissorRect.left = 0;
-    scissorRect.top = 0;
-    scissorRect.right = m_clientWidth;
-    scissorRect.bottom = m_clientHeight;
-
-    d3d->m_commandList->RSSetScissorRects(1, &scissorRect);
+    ZeroMemory(&m_scissorRect, sizeof(m_scissorRect));
+    m_scissorRect.left = 0;
+    m_scissorRect.top = 0;
+    m_scissorRect.right = m_clientWidth;
+    m_scissorRect.bottom = m_clientHeight;
 }

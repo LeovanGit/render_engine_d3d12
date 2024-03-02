@@ -10,4 +10,8 @@
 
 namespace wrl = Microsoft::WRL;
 
-#define D3D_ASSERT(hresult) assert((hresult) >= 0)
+#if defined(DEBUG) || defined(_DEBUG)
+    #define D3D_ASSERT(hresult) assert((hresult) >= 0)
+#else
+    #define D3D_ASSERT(hresult) hresult
+#endif

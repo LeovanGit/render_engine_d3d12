@@ -50,19 +50,26 @@ void Direct3D::CreateDevice()
 
     D3D_ASSERT(CreateDXGIFactory1(IID_PPV_ARGS(&m_factory)));
 
-    HRESULT result = D3D12CreateDevice(nullptr, D3D_FEATURE_LEVEL_12_1, IID_PPV_ARGS(&m_device));
-    if (FAILED(result)) // fallback to WARP (Windows default software adapter)
+    IDXGIAdapter *adapter = nullptr;
+    for (uint8_t i = 0; m_factory->EnumAdapters(i, &adapter) != DXGI_ERROR_NOT_FOUND; ++i)
     {
-        wrl::ComPtr<IDXGIAdapter> warpAdapter;
-        D3D_ASSERT(m_factory->EnumWarpAdapter(IID_PPV_ARGS(&warpAdapter)));
-
-        D3D_ASSERT(D3D12CreateDevice(warpAdapter.Get(), D3D_FEATURE_LEVEL_12_1, IID_PPV_ARGS(&m_device)));
+        HRESULT result = D3D12CreateDevice(adapter, D3D_FEATURE_LEVEL_12_1, IID_PPV_ARGS(&m_device));
+        
+        if (SUCCEEDED(result))
+        {
+            DXGI_ADAPTER_DESC adapterDesc;
+            adapter->GetDesc(&adapterDesc);
+            std::wcout << "GPU[" << i << "] was selected: " << adapterDesc.Description << "\n";
+            
+            break;
+        }
     }
 }
 
 void Direct3D::CreateFence()
 {
     D3D_ASSERT(m_device->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&m_fence)));
+    m_currentFenceValue = 0;
 }
 
 void Direct3D::CreateCommandObjects()
@@ -84,4 +91,39 @@ void Direct3D::CreateCommandObjects()
         IID_PPV_ARGS(&m_commandList)));
 
     m_commandList->Close();
+}
+
+void Direct3D::ResetCommandList() const
+{
+    D3D_ASSERT(m_commandAllocator->Reset());
+    D3D_ASSERT(m_commandList->Reset(m_commandAllocator.Get(), nullptr));
+}
+
+void Direct3D::CloseCommandList() const
+{
+    D3D_ASSERT(m_commandList->Close());
+}
+
+void Direct3D::ExecuteCommandList() const
+{
+    // add command list to command queue for execution:
+    ID3D12CommandList *commandLists[] = { m_commandList.Get() };
+    m_commandQueue->ExecuteCommandLists(_countof(commandLists), commandLists);
+}
+
+void Direct3D::FlushCommandQueue() const
+{
+    D3D_ASSERT(m_commandQueue->Signal(m_fence.Get(), ++m_currentFenceValue));
+
+    // wait until GPU has completed all commands before new fence point
+    if (m_fence->GetCompletedValue() < m_currentFenceValue)
+    {
+        HANDLE fenceEvent = CreateEvent(nullptr, false, false, nullptr);
+        // execute some event when GPU receive new fence value
+        // (needed only to make CPU wait here):
+        D3D_ASSERT(m_fence->SetEventOnCompletion(m_currentFenceValue, fenceEvent));
+        WaitForSingleObject(fenceEvent, INFINITE);
+
+        CloseHandle(fenceEvent);
+    }
 }

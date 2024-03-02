@@ -4,6 +4,7 @@
 
 #include "source\window.h"
 #include "source\d3d.h"
+#include "source\renderer.h"
 #include "source\timer.h"
 
 LRESULT CALLBACK WindowProc(
@@ -44,6 +45,8 @@ int WINAPI WinMain(
         800,
         600);
 
+    Renderer renderer(&window);
+
     Timer timer;
 
     MSG msg;
@@ -64,7 +67,7 @@ int WINAPI WinMain(
 
             std::wstring windowText =
                 L"fps: " + std::to_wstring(fps) +
-                L"\ndt: " + std::to_wstring(delta_time);
+                L"\ndt: " + std::to_wstring(delta_time * 1000.0f); // in ms
 
             RECT rect = { 2, 2, 74, 48 };
             DrawText(
@@ -73,6 +76,8 @@ int WINAPI WinMain(
                 windowText.size(),
                 &rect,
                 DT_LEFT | DT_TOP);
+
+            renderer.Render();
         }
     }
 
@@ -96,6 +101,25 @@ LRESULT CALLBACK WindowProc(
 
         return 0;
     }
+    //case WM_ACTIVATE:
+    //{
+    //    if (LOWORD(wParam) == WA_INACTIVE) // pause game or decrease fps
+    //    else // unpause game
+    //}
+    //case WM_SIZE:
+    // 1. resize back buffers to new client area size: IDXGISwapChain::ResizeBuffers()
+    // 2. destroy and recreate depth stencil buffer with new client area size
+    // 3. recreate depth stencil view and render taget view
+ 
+    // WARNING: we should use WM_EXITSIZEMOVE instead of WM_SIZE and WM_MOVE,
+    // to resize/move only once - when user has finished window resizing/moving
+
+    //case WM_LBUTTONDOWN:
+    //case WM_RBUTTONDOWN:
+    //case WM_LBUTTONUP:
+    //case WM_RBUTTONUP:
+    //case WM_MOUSEMOVE:
+    // WARNING: use #include <Windowsx.h> for the usefull GET_X_LPARAM() and GET_Y_LPARAM() macros
     }
 
     return DefWindowProc(windowHandle, message, wParam, lParam);

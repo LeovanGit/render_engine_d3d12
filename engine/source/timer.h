@@ -20,8 +20,6 @@ public:
 
     float GetDeltaTime() const;
 
-    float GetFPS() const;
-
 private:
     TimePoint m_prevTimePoint;
     Seconds m_deltaTime;

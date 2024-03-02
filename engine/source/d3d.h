@@ -14,9 +14,16 @@ public:
 
     static void Deinit();
 
+    void ResetCommandList() const;
+    void CloseCommandList() const;
+    void ExecuteCommandList() const;
+
+    void FlushCommandQueue() const;
+
     wrl::ComPtr<IDXGIFactory5> m_factory;
     wrl::ComPtr<ID3D12Device> m_device;
 
+    mutable uint64_t m_currentFenceValue;
     wrl::ComPtr<ID3D12Fence> m_fence;
     wrl::ComPtr<ID3D12CommandQueue> m_commandQueue;
     wrl::ComPtr<ID3D12CommandAllocator> m_commandAllocator;
