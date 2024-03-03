@@ -1,6 +1,7 @@
 #pragma once
 
 #include <iostream>
+#include <d3dx12.h>
 
 #include "utils/common.h"
 #include "utils/non_copyable.h"
@@ -19,6 +20,12 @@ public:
     void ExecuteCommandList() const;
 
     void FlushCommandQueue() const;
+
+    // HELPER FUNCTIONS
+    wrl::ComPtr<ID3D12Resource> CreateDefaultBuffer(
+        const void *data,
+        uint64_t byteSize,
+        wrl::ComPtr<ID3D12Resource> &uploadBuffer) const;
 
     wrl::ComPtr<IDXGIFactory5> m_factory;
     wrl::ComPtr<ID3D12Device> m_device;

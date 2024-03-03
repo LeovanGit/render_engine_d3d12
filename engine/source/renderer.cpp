@@ -13,6 +13,7 @@ Renderer::Renderer(const Window *window)
 void Renderer::Render()
 {
     const Direct3D *d3d = Direct3D::GetInstance();
+    MeshSystem *mesh_system = MeshSystem::GetInstance();
 
     d3d->ResetCommandList(); // start recording commands
 
@@ -21,6 +22,12 @@ void Renderer::Render()
 
     BindDepthStencilBuffer();
     m_window->BindRenderTarget(GetDepthStencilView());
+
+    mesh_system->m_vertexBuffer.Bind();
+
+    d3d->m_commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+
+    // d3d->m_commandList->DrawInstanced(mesh_system->m_vertexBuffer.GetSize(), 1, 0, 0);
 
     d3d->CloseCommandList(); // done recording commands
     d3d->ExecuteCommandList();

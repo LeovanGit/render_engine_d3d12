@@ -4,6 +4,7 @@
 
 #include "window.h"
 #include "d3d.h"
+#include "mesh_system.h"
 
 class Renderer
 {

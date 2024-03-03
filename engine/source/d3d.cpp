@@ -127,3 +127,69 @@ void Direct3D::FlushCommandQueue() const
         CloseHandle(fenceEvent);
     }
 }
+
+// Since CPU hasn't access to defaultBuffer commited to D3D12_HEAP_TYPE_DEFAULT,
+// to copy CPU memory data (system data) into it we need to create an intermediate uploadBuffer
+// into D3D12_HEAP_TYPE_UPLOAD, fill it by CPU data and then copy to defaultBuffer
+
+// WARNING:
+// uploadBuffer has to be kept alive after this function, because
+// the command list has not been executed yet that performs the actual copy.
+// So the caller should Release the uploadBuffer after it knows the copy has been executed
+wrl::ComPtr<ID3D12Resource> Direct3D::CreateDefaultBuffer(
+    const void *data,
+    uint64_t byteSize,
+    wrl::ComPtr<ID3D12Resource> &uploadBuffer) const
+{
+    wrl::ComPtr<ID3D12Resource> defaultBuffer;
+
+    D3D12_HEAP_PROPERTIES defaultHeapProperties = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT);
+    D3D12_RESOURCE_DESC defaultResourceDesc = CD3DX12_RESOURCE_DESC::Buffer(byteSize);
+    D3D_ASSERT(m_device->CreateCommittedResource(
+        &defaultHeapProperties,
+        D3D12_HEAP_FLAG_NONE,
+        &defaultResourceDesc,
+        D3D12_RESOURCE_STATE_COMMON,
+        nullptr,
+        IID_PPV_ARGS(&defaultBuffer)));
+
+    D3D12_HEAP_PROPERTIES uploadHeapProperties = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD);
+    D3D12_RESOURCE_DESC uploadResourceDesc = CD3DX12_RESOURCE_DESC::Buffer(byteSize);
+    D3D_ASSERT(m_device->CreateCommittedResource(
+        &uploadHeapProperties,
+        D3D12_HEAP_FLAG_NONE,
+        &uploadResourceDesc,
+        D3D12_RESOURCE_STATE_GENERIC_READ,
+        nullptr,
+        IID_PPV_ARGS(&uploadBuffer)));
+    
+    // Describe data which we want to copy into the defaultBuffer
+    D3D12_SUBRESOURCE_DATA subresourceData;
+    subresourceData.pData = data;
+    subresourceData.RowPitch = byteSize;
+    subresourceData.SlicePitch = byteSize;
+
+    D3D12_RESOURCE_BARRIER transitionBarrier = CD3DX12_RESOURCE_BARRIER::Transition(
+        defaultBuffer.Get(),
+        D3D12_RESOURCE_STATE_COMMON,
+        D3D12_RESOURCE_STATE_COPY_DEST);
+    m_commandList->ResourceBarrier(1, &transitionBarrier);
+
+    // copy CPU memory into defaultBuffer using uploadBuffer (wrapper from d3dx12.h)
+    UpdateSubresources<1>(
+        m_commandList.Get(),
+        defaultBuffer.Get(),
+        uploadBuffer.Get(),
+        0,
+        0,
+        1,
+        &subresourceData);
+
+    transitionBarrier = CD3DX12_RESOURCE_BARRIER::Transition(
+        defaultBuffer.Get(),
+        D3D12_RESOURCE_STATE_COPY_DEST,
+        D3D12_RESOURCE_STATE_GENERIC_READ);
+    m_commandList->ResourceBarrier(1, &transitionBarrier);
+
+    return defaultBuffer;
+}

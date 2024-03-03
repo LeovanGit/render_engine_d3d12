@@ -2,10 +2,12 @@
 
 #include <string>
 
+#include "source\engine.h"
 #include "source\window.h"
-#include "source\d3d.h"
 #include "source\renderer.h"
 #include "source\timer.h"
+
+#include "application.h"
 
 LRESULT CALLBACK WindowProc(
     HWND windowHandle,
@@ -34,7 +36,7 @@ int WINAPI WinMain(
 {
     initConsole();
 
-    Direct3D::Init();
+    Engine::Init();
 
     Window window(
         instanceHandle,
@@ -49,6 +51,9 @@ int WINAPI WinMain(
 
     Timer timer;
 
+    Application application;
+    application.InitScene();
+
     MSG msg;
     while (true)
     {
@@ -62,27 +67,15 @@ int WINAPI WinMain(
 
         if (timer.IsElapsed(k_frameTime))
         {
-            float delta_time = timer.GetDeltaTime();
-            float fps = 1.0f / delta_time;
-
-            std::wstring windowText =
-                L"fps: " + std::to_wstring(fps) +
-                L"\ndt: " + std::to_wstring(delta_time * 1000.0f); // in ms
-
-            RECT rect = { 2, 2, 74, 48 };
-            DrawText(
-                GetDC(window.m_windowHandle),
-                windowText.c_str(),
-                windowText.size(),
-                &rect,
-                DT_LEFT | DT_TOP);
+            std::wstring windowText = L"fps: " + std::to_wstring(1.0f / timer.GetDeltaTime());
+            SetWindowText(window.m_windowHandle, windowText.c_str());
 
             renderer.Render();
         }
     }
 
 exit:
-    Direct3D::Deinit();
+    Engine::Deinit();
 
     return static_cast<int>(msg.wParam);
 }
