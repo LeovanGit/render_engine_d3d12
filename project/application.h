@@ -2,11 +2,11 @@
 
 #include <d3d12.h>
 
-#include "source\mesh_system.h"
+#include "source/renderer.h"
+#include "source/shader_manager.h"
 
 class Application
 {
 public:
-    void InitScene();
+    void InitScene(Renderer &renderer);
 };
-

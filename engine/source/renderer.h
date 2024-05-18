@@ -4,7 +4,7 @@
 
 #include "window.h"
 #include "d3d.h"
-#include "mesh_system.h"
+#include "mesh.h"
 
 class Renderer
 {
@@ -24,6 +24,8 @@ private:
 
 public:
     const Window *m_window;
+
+    std::shared_ptr<Mesh> mesh;
 
     wrl::ComPtr<ID3D12DescriptorHeap> m_dsvHeap;
     UINT m_dsvDescriptorSize;

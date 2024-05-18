@@ -11,55 +11,55 @@ struct Vertex
     DirectX::XMFLOAT3 color;
 };
 
-template<class T>
 class Buffer
 {
 public:
-    Buffer() = default;
+    Buffer();
+    Buffer(const void *data, uint32_t size, uint32_t stride);
 
-    Buffer(const T *data, uint64_t byteSize)
+    void Init(const void *data, uint32_t size, uint32_t stride);
+
+    ~Buffer();
+
+    uint32_t GetSize() const
     {
-        Init(data, byteSize);
+        return m_size;
     }
 
-    void Init(const T *data, uint64_t byteSize)
+    uint32_t GetStride() const
     {
-        const Direct3D *d3d = Direct3D::GetInstance();
-
-        m_byteSize = byteSize;
-
-        m_buffer = d3d->CreateDefaultBuffer(data, byteSize, m_uploadBuffer);
-        CreateVertexBufferView();
-    };
-
-    void Bind() const
-    {
-        const Direct3D *d3d = Direct3D::GetInstance();
-
-        d3d->m_commandList->IASetVertexBuffers(0, 1, &m_vertexBufferView);
+        return m_stride;
     }
 
-    uint64_t GetByteSize() const
+    uint32_t GetByteSize() const
     {
-        return m_byteSize;
+        return m_size * m_stride;
     }
 
-    uint64_t GetSize() const
+    D3D12_GPU_VIRTUAL_ADDRESS GetGPUVirtualAddress() const
     {
-        return m_byteSize / sizeof(T);
+        return m_gpuVirtualAddress;
     }
+
+    wrl::ComPtr<ID3D12Resource> GetHandle() const
+    {
+        return m_defaultBuffer;
+    }
+
+    void* Map();
+    void Unmap();
 
 private:
-    void CreateVertexBufferView()
-    {
-        m_vertexBufferView.BufferLocation = m_buffer->GetGPUVirtualAddress();
-        m_vertexBufferView.SizeInBytes = m_byteSize;
-        m_vertexBufferView.StrideInBytes = sizeof(T);
-    }
+    uint32_t m_size; // elements count
+    uint32_t m_stride; // byte size of element
+    bool m_isMapped;
 
+    // cache to avoid calls to ID3D12Resource::GetGpuVirtualAddress():
+    D3D12_GPU_VIRTUAL_ADDRESS m_gpuVirtualAddress;
+
+    // GPU buffer (in default heap)
+    wrl::ComPtr<ID3D12Resource> m_defaultBuffer;
+
+    // to upload data from CPU to GPU (to m_defaultBuffer)
     wrl::ComPtr<ID3D12Resource> m_uploadBuffer;
-
-    uint64_t m_byteSize;
-    wrl::ComPtr<ID3D12Resource> m_buffer;
-    D3D12_VERTEX_BUFFER_VIEW m_vertexBufferView;
 };

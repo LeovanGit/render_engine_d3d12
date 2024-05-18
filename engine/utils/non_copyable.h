@@ -3,8 +3,8 @@
 class NonCopyable
 {
 public:
-    NonCopyable() {}
-    ~NonCopyable() {}
+    NonCopyable() = default;
+    ~NonCopyable() = default;
 
     NonCopyable(const NonCopyable &other) = delete;
     void operator=(const NonCopyable &other) = delete;

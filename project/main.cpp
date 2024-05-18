@@ -52,7 +52,7 @@ int WINAPI WinMain(
     Timer timer;
 
     Application application;
-    application.InitScene();
+    application.InitScene(renderer);
 
     MSG msg;
     while (true)
