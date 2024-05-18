@@ -11,7 +11,7 @@
 namespace
 {
 #if defined(DEBUG) || defined(_DEBUG)
-const float k_clearColor[] = { 1.0f, 0.0f, 0.0f, 1.0f };
+const float k_clearColor[] = { 0.0f, 0.0f, 0.0f, 1.0f };
 #else
 const float k_clearColor[] = { 0.0f, 0.0f, 0.0f, 1.0f };
 #endif

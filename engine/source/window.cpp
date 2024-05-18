@@ -99,12 +99,6 @@ void Window::BindRenderTarget(D3D12_CPU_DESCRIPTOR_HANDLE depthStencilView) cons
         &backBufferView,
         true,
         &depthStencilView);
-
-    transitionBarrier = CD3DX12_RESOURCE_BARRIER::Transition(
-        GetCurrentBackBuffer(),
-        D3D12_RESOURCE_STATE_RENDER_TARGET,
-        D3D12_RESOURCE_STATE_PRESENT);
-    d3d->m_commandList->ResourceBarrier(1, &transitionBarrier);
 }
 
 void Window::ClearRenderTargetView() const

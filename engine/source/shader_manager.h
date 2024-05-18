@@ -17,7 +17,8 @@ public:
     const Shader& GetOrCreateShader(
         const std::string &filename,
         const std::string &entryPoint,
-        const ShaderType shaderType);
+        const ShaderType shaderType,
+        const std::vector<D3D12_INPUT_ELEMENT_DESC> *inputLayout = nullptr);
 
 private:
     ShaderManager() = default;

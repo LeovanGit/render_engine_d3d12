@@ -8,12 +8,15 @@ UINT PATH_NOT_FOUND = 0x80070003;
 Shader::Shader(
     const std::string &filename,
     const std::string &entryPoint,
-    const ShaderType shaderType)
+    const ShaderType shaderType,
+    const std::vector<D3D12_INPUT_ELEMENT_DESC> *inputLayout)
     // convert string to wstring (works only for 1 byte symbols):
     : m_filename(filename.begin(), filename.end())
     , m_entryPoint(entryPoint)
     , m_shaderType(shaderType)
 {
+    if (inputLayout) m_inputLayout = *inputLayout;
+
     Compile();
 }
 

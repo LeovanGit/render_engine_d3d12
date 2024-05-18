@@ -31,14 +31,15 @@ void ShaderManager::Deinit()
 const Shader& ShaderManager::GetOrCreateShader(
     const std::string &filename,
     const std::string &entryPoint,
-    const ShaderType shaderType)
+    const ShaderType shaderType,
+    const std::vector<D3D12_INPUT_ELEMENT_DESC> *inputLayout)
 {
     std::string key = filename + entryPoint;
 
     auto found = m_shaders.find(key);
     if (found != m_shaders.end()) return found->second;
     
-    auto insert = m_shaders.try_emplace(key, filename, entryPoint, shaderType);
+    auto insert = m_shaders.try_emplace(key, filename, entryPoint, shaderType, inputLayout);
 
     return insert.first->second;
 }

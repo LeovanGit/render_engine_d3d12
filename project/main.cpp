@@ -53,6 +53,7 @@ int WINAPI WinMain(
 
     Application application;
     application.InitScene(renderer);
+    renderer.Init(); // call it after Application::InitScene()
 
     MSG msg;
     while (true)

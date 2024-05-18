@@ -2,7 +2,7 @@
 
 void Application::InitScene(Renderer &renderer)
 {
-    D3D12_INPUT_ELEMENT_DESC opaqueVertexLayout[]
+    std::vector<D3D12_INPUT_ELEMENT_DESC> opaqueInputLayout =
     {
         {
             "POSITION",
@@ -26,9 +26,9 @@ void Application::InitScene(Renderer &renderer)
 
     Vertex vertices[]
     {
-        { DirectX::XMFLOAT3( 1.0f, 0.0f, 0.0f), DirectX::XMFLOAT3(1.0f, 0.0f, 0.0f) },
-        { DirectX::XMFLOAT3(-1.0f, 0.0f, 0.0f), DirectX::XMFLOAT3(0.0f, 1.0f, 0.0f) },
-        { DirectX::XMFLOAT3( 0.0f, 1.0f, 0.0f), DirectX::XMFLOAT3(0.0f, 0.0f, 1.0f) },
+        { DirectX::XMFLOAT3( 0.5f, -0.5f, 0.0f), DirectX::XMFLOAT3(1.0f, 0.0f, 0.0f) },
+        { DirectX::XMFLOAT3(-0.5f, -0.5f, 0.0f), DirectX::XMFLOAT3(0.0f, 1.0f, 0.0f) },
+        { DirectX::XMFLOAT3( 0.0f, 0.5f, 0.0f), DirectX::XMFLOAT3(0.0f, 0.0f, 1.0f) },
     };
 
     uint32_t indices[]
@@ -45,6 +45,6 @@ void Application::InitScene(Renderer &renderer)
         sizeof(uint32_t));
 
     ShaderManager *sm = ShaderManager::GetInstance();
-    sm->GetOrCreateShader("../resources/shaders/triangle.hlsl", "mainVS", ShaderType::VERTEX_SHADER);
+    sm->GetOrCreateShader("../resources/shaders/triangle.hlsl", "mainVS", ShaderType::VERTEX_SHADER, &opaqueInputLayout);
     sm->GetOrCreateShader("../resources/shaders/triangle.hlsl", "mainPS", ShaderType::PIXEL_SHADER);
 }

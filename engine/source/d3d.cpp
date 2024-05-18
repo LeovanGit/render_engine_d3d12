@@ -141,6 +141,8 @@ wrl::ComPtr<ID3D12Resource> Direct3D::CreateDefaultBuffer(
     uint64_t byteSize,
     wrl::ComPtr<ID3D12Resource> &uploadBuffer) const
 {
+    ResetCommandList(); // start recording commands
+
     wrl::ComPtr<ID3D12Resource> defaultBuffer;
 
     D3D12_HEAP_PROPERTIES defaultHeapProperties = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT);
@@ -190,6 +192,10 @@ wrl::ComPtr<ID3D12Resource> Direct3D::CreateDefaultBuffer(
         D3D12_RESOURCE_STATE_COPY_DEST,
         D3D12_RESOURCE_STATE_GENERIC_READ);
     m_commandList->ResourceBarrier(1, &transitionBarrier);
+
+    CloseCommandList(); // done recording commands
+    ExecuteCommandList();
+    FlushCommandQueue();
 
     return defaultBuffer;
 }

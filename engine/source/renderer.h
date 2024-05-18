@@ -5,11 +5,14 @@
 #include "window.h"
 #include "d3d.h"
 #include "mesh.h"
+#include "shader_manager.h"
 
 class Renderer
 {
 public:
     Renderer(const Window *window);
+
+    void Init();
 
     void Render();
 
@@ -22,6 +25,9 @@ private:
     void ClearDepthStencilView();
     void BindDepthStencilBuffer();
 
+    void CreateRootSignature();
+    void CreatePipeline();
+
 public:
     const Window *m_window;
 
@@ -32,4 +38,7 @@ public:
 
     static const DXGI_FORMAT m_depthStencilBufferFormat = DXGI_FORMAT_D24_UNORM_S8_UINT;
     wrl::ComPtr<ID3D12Resource> m_depthStencilBuffer;
+
+    wrl::ComPtr<ID3D12RootSignature> m_rootSignature;
+    wrl::ComPtr<ID3D12PipelineState> m_PSO;
 };

@@ -3,11 +3,19 @@
 Renderer::Renderer(const Window *window)
     : m_window(window)
 {
+
+}
+
+void Renderer::Init()
+{
     Size windowClientSize = m_window->GetClientSize();
 
     CreateDescriptorHeaps();
     CreateDepthStencilBuffer(windowClientSize);
     CreateDepthStencilView();
+
+    CreateRootSignature();
+    CreatePipeline();
 }
 
 void Renderer::Render()
@@ -16,11 +24,18 @@ void Renderer::Render()
 
     d3d->ResetCommandList(); // start recording commands
 
+    d3d->m_commandList->SetPipelineState(m_PSO.Get());
+
     m_window->BindViewports();
     m_window->BindScissorRects();
 
     BindDepthStencilBuffer();
     m_window->BindRenderTarget(GetDepthStencilView());
+
+    //ID3D12DescriptorHeap *descriptorHeaps[] = { mCbvHeap.Get() };
+    //m_commandList->SetDescriptorHeaps(_countof(descriptorHeaps), descriptorHeaps);
+
+    d3d->m_commandList->SetGraphicsRootSignature(m_rootSignature.Get());
 
     mesh->BindVertexBuffer();
     mesh->BindIndexBuffer();
@@ -33,6 +48,18 @@ void Renderer::Render()
         0,
         0,
         0);
+
+    D3D12_RESOURCE_BARRIER transitionBarrier = CD3DX12_RESOURCE_BARRIER::Transition(
+        m_window->GetCurrentBackBuffer(),
+        D3D12_RESOURCE_STATE_RENDER_TARGET,
+        D3D12_RESOURCE_STATE_PRESENT);
+    d3d->m_commandList->ResourceBarrier(1, &transitionBarrier);
+
+    transitionBarrier = CD3DX12_RESOURCE_BARRIER::Transition(
+        m_depthStencilBuffer.Get(),
+        D3D12_RESOURCE_STATE_DEPTH_WRITE,
+        D3D12_RESOURCE_STATE_COMMON);
+    d3d->m_commandList->ResourceBarrier(1, &transitionBarrier);
 
     d3d->CloseCommandList(); // done recording commands
     d3d->ExecuteCommandList();
@@ -136,10 +163,59 @@ void Renderer::BindDepthStencilBuffer()
     d3d->m_commandList->ResourceBarrier(1, &transitionBarrier);
 
     ClearDepthStencilView();
+}
 
-    transitionBarrier = CD3DX12_RESOURCE_BARRIER::Transition(
-        m_depthStencilBuffer.Get(),
-        D3D12_RESOURCE_STATE_DEPTH_WRITE,
-        D3D12_RESOURCE_STATE_COMMON);
-    d3d->m_commandList->ResourceBarrier(1, &transitionBarrier);
+void Renderer::CreateRootSignature()
+{
+    CD3DX12_ROOT_SIGNATURE_DESC rootSignatureDesc;
+    rootSignatureDesc.Init(
+        0,
+        nullptr,
+        0,
+        nullptr,
+        D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT);
+
+    wrl::ComPtr<ID3DBlob> rootSignatureBlob = nullptr;
+    wrl::ComPtr<ID3DBlob> errorMsg = nullptr;
+
+    D3D_ASSERT(D3D12SerializeRootSignature(
+        &rootSignatureDesc,
+        D3D_ROOT_SIGNATURE_VERSION_1,
+        rootSignatureBlob.GetAddressOf(),
+        errorMsg.GetAddressOf()));
+
+    const Direct3D *d3d = Direct3D::GetInstance();
+    d3d->m_device->CreateRootSignature(
+        0,
+        rootSignatureBlob->GetBufferPointer(),
+        rootSignatureBlob->GetBufferSize(),
+        IID_PPV_ARGS(&m_rootSignature));
+}
+
+void Renderer::CreatePipeline()
+{
+    ShaderManager *sm = ShaderManager::GetInstance();
+    const Shader &vs = sm->GetOrCreateShader("../resources/shaders/triangle.hlsl", "mainVS", ShaderType::VERTEX_SHADER);
+    const Shader &ps = sm->GetOrCreateShader("../resources/shaders/triangle.hlsl", "mainPS", ShaderType::PIXEL_SHADER);
+
+    D3D12_GRAPHICS_PIPELINE_STATE_DESC PSOdesc = {};
+    PSOdesc.pRootSignature = m_rootSignature.Get();
+    PSOdesc.VS = { vs.GetBytecode()->GetBufferPointer(), vs.GetBytecode()->GetBufferSize() };
+    PSOdesc.PS = { ps.GetBytecode()->GetBufferPointer(), ps.GetBytecode()->GetBufferSize() };
+    PSOdesc.BlendState = CD3DX12_BLEND_DESC(D3D12_DEFAULT);
+    PSOdesc.SampleMask = UINT_MAX;
+    PSOdesc.RasterizerState = CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT);
+    PSOdesc.DepthStencilState = CD3DX12_DEPTH_STENCIL_DESC(D3D12_DEFAULT);
+    PSOdesc.InputLayout = { vs.GetInputLayout().data(), UINT(vs.GetInputLayout().size()) };
+    PSOdesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
+    PSOdesc.NumRenderTargets = 1;
+    PSOdesc.RTVFormats[0] = m_window->m_backBufferFormat;
+    PSOdesc.DSVFormat = m_depthStencilBufferFormat;
+    PSOdesc.SampleDesc.Count = 1;
+    PSOdesc.SampleDesc.Quality = 0;
+
+    const Direct3D *d3d = Direct3D::GetInstance();
+    D3D_ASSERT(d3d->m_device->CreateGraphicsPipelineState(
+        &PSOdesc,
+        IID_PPV_ARGS(&m_PSO)));
 }
