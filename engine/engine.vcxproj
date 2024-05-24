@@ -21,6 +21,7 @@
   <ItemGroup>
     <ClCompile Include="source\buffer.cpp" />
     <ClCompile Include="source\d3d.cpp" />
+    <ClCompile Include="source\math\cube.cpp" />
     <ClCompile Include="source\mesh.cpp" />
     <ClCompile Include="source\renderer.cpp" />
     <ClCompile Include="source\shader.cpp" />
@@ -31,6 +32,7 @@
   <ItemGroup>
     <ClInclude Include="source\buffer.h" />
     <ClInclude Include="source\engine.h" />
+    <ClInclude Include="source\math\cube.h" />
     <ClInclude Include="source\mesh.h" />
     <ClInclude Include="source\shader.h" />
     <ClInclude Include="source\shader_manager.h" />
@@ -40,6 +42,7 @@
     <ClInclude Include="source\renderer.h" />
     <ClInclude Include="source\timer.h" />
     <ClInclude Include="source\window.h" />
+    <ClInclude Include="utils\utils.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>17.0</VCProjectVersion>

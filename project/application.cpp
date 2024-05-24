@@ -14,7 +14,7 @@ void Application::InitScene(Renderer &renderer)
             0
         },
         {
-            "COLOR",
+            "NORMAL",
             0,
             DXGI_FORMAT_R32G32B32_FLOAT,
             0,
@@ -22,26 +22,23 @@ void Application::InitScene(Renderer &renderer)
             D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA,
             0
         },
-    };
-
-    Vertex vertices[]
-    {
-        { DirectX::XMFLOAT3( 0.5f, -0.5f, 0.0f), DirectX::XMFLOAT3(1.0f, 0.0f, 0.0f) },
-        { DirectX::XMFLOAT3(-0.5f, -0.5f, 0.0f), DirectX::XMFLOAT3(0.0f, 1.0f, 0.0f) },
-        { DirectX::XMFLOAT3( 0.0f, 0.5f, 0.0f), DirectX::XMFLOAT3(0.0f, 0.0f, 1.0f) },
-    };
-
-    uint32_t indices[]
-    {
-        0, 1, 2
+        {
+            "TEXCOORD",
+            0,
+            DXGI_FORMAT_R32G32_FLOAT,
+            0,
+            D3D12_APPEND_ALIGNED_ELEMENT,
+            D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA,
+            0
+        },
     };
 
     renderer.mesh = std::make_shared<Mesh>(
-        vertices,
-        sizeof(vertices) / sizeof(Vertex),
+        Cube::s_vertices,
+        sizeof(Cube::s_vertices) / sizeof(Vertex),
         sizeof(Vertex),
-        indices,
-        sizeof(indices) / sizeof(uint32_t),
+        Cube::s_indices,
+        sizeof(Cube::s_indices) / sizeof(uint32_t),
         sizeof(uint32_t));
 
     ShaderManager *sm = ShaderManager::GetInstance();

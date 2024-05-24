@@ -4,6 +4,7 @@
 
 #include "source/renderer.h"
 #include "source/shader_manager.h"
+#include "source/math/cube.h"
 
 class Application
 {

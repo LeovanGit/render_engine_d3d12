@@ -12,7 +12,7 @@ void Renderer::Init()
 
     CreateDescriptorHeaps();
     CreateDepthStencilBuffer(windowClientSize);
-    CreateDepthStencilView();
+    CreateConstantBuffer();
 
     CreateRootSignature();
     CreatePipeline();
@@ -32,10 +32,21 @@ void Renderer::Render()
     BindDepthStencilBuffer();
     m_window->BindRenderTarget(GetDepthStencilView());
 
-    //ID3D12DescriptorHeap *descriptorHeaps[] = { mCbvHeap.Get() };
-    //m_commandList->SetDescriptorHeaps(_countof(descriptorHeaps), descriptorHeaps);
-
     d3d->m_commandList->SetGraphicsRootSignature(m_rootSignature.Get());
+
+    // Update Constant Buffer Hardcoded:
+    ConstantBufferData cbufferData;
+    // translate +1 z and rotate around y and x by 45 grad:
+    cbufferData.transformMat =
+    {
+        0.7f, -0.49f, -0.49f, 0.0f,
+        0.0f, 0.7f, -0.7f, 0.0f,
+        0.7f, 0.49f, 0.49f, 0.0f,
+        0.0f, 0.0f, 1.0f, 1.0f
+    };
+    UpdateConstantBuffer(&cbufferData);
+
+    BindConstantBuffer();
 
     mesh->BindVertexBuffer();
     mesh->BindIndexBuffer();
@@ -73,16 +84,25 @@ void Renderer::CreateDescriptorHeaps()
 {
     const Direct3D *d3d = Direct3D::GetInstance();
 
-    D3D12_DESCRIPTOR_HEAP_DESC dsvHeapDesc;
-    ZeroMemory(&dsvHeapDesc, sizeof(dsvHeapDesc));
+    // DSV
+    D3D12_DESCRIPTOR_HEAP_DESC dsvHeapDesc = {};
     dsvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_DSV;
     dsvHeapDesc.NumDescriptors = 1;
     dsvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
     dsvHeapDesc.NodeMask = 0;
 
     D3D_ASSERT(d3d->m_device->CreateDescriptorHeap(&dsvHeapDesc, IID_PPV_ARGS(&m_dsvHeap)));
-
     m_dsvDescriptorSize = d3d->m_device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_DSV);
+    
+    // CBV SRV UAV
+    D3D12_DESCRIPTOR_HEAP_DESC cbvSrvUavHeapDesc = {};
+    cbvSrvUavHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
+    cbvSrvUavHeapDesc.NumDescriptors = 1;
+    cbvSrvUavHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
+    cbvSrvUavHeapDesc.NodeMask = 0;
+
+    D3D_ASSERT(d3d->m_device->CreateDescriptorHeap(&cbvSrvUavHeapDesc, IID_PPV_ARGS(&m_cbvSrvUavHeap)));
+    m_cbvSrvUavDescriptorSize = d3d->m_device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_DSV);
 }
 
 D3D12_CPU_DESCRIPTOR_HANDLE Renderer::GetDepthStencilView() const
@@ -90,12 +110,16 @@ D3D12_CPU_DESCRIPTOR_HANDLE Renderer::GetDepthStencilView() const
     return m_dsvHeap->GetCPUDescriptorHandleForHeapStart();
 }
 
+D3D12_CPU_DESCRIPTOR_HANDLE Renderer::GetConstantBufferView() const
+{
+    return m_cbvSrvUavHeap->GetCPUDescriptorHandleForHeapStart();
+}
+
 void Renderer::CreateDepthStencilBuffer(const Size &windowClientSize)
 {
     const Direct3D *d3d = Direct3D::GetInstance();
 
-    D3D12_RESOURCE_DESC depthStencilBufferDesc;
-    ZeroMemory(&depthStencilBufferDesc, sizeof(depthStencilBufferDesc));
+    D3D12_RESOURCE_DESC depthStencilBufferDesc = {};
     depthStencilBufferDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
     depthStencilBufferDesc.Alignment = 0;
     depthStencilBufferDesc.Width = windowClientSize.width;
@@ -110,8 +134,7 @@ void Renderer::CreateDepthStencilBuffer(const Size &windowClientSize)
 
     // optimized value for clearing resources
     // (clear calls with it potentially faster than with nullptr)
-    D3D12_CLEAR_VALUE clearValue;
-    ZeroMemory(&clearValue, sizeof(clearValue));
+    D3D12_CLEAR_VALUE clearValue = {};
     clearValue.Format = m_depthStencilBufferFormat;
     clearValue.DepthStencil.Depth = 1.0f;
     clearValue.DepthStencil.Stencil = 0;
@@ -126,11 +149,6 @@ void Renderer::CreateDepthStencilBuffer(const Size &windowClientSize)
         D3D12_RESOURCE_STATE_COMMON,
         &clearValue,
         IID_PPV_ARGS(&m_depthStencilBuffer)));
-}
-
-void Renderer::CreateDepthStencilView()
-{
-    const Direct3D *d3d = Direct3D::GetInstance();
 
     // create descriptor (view):
     d3d->m_device->CreateDepthStencilView(
@@ -139,7 +157,7 @@ void Renderer::CreateDepthStencilView()
         GetDepthStencilView());
 }
 
-void Renderer::ClearDepthStencilView()
+void Renderer::ClearDepthStencilBuffer()
 {
     const Direct3D *d3d = Direct3D::GetInstance();
 
@@ -162,15 +180,78 @@ void Renderer::BindDepthStencilBuffer()
         D3D12_RESOURCE_STATE_DEPTH_WRITE);
     d3d->m_commandList->ResourceBarrier(1, &transitionBarrier);
 
-    ClearDepthStencilView();
+    ClearDepthStencilBuffer();
+}
+
+void Renderer::CreateConstantBuffer()
+{
+    const Direct3D *d3d = Direct3D::GetInstance();
+
+    // Hardware requirement:
+    // constant buffer size should be aligned by minimum hardware allocation size (256 bytes):
+    UINT elementByteSize = alignUp<UINT>(sizeof(ConstantBufferData), 256);
+
+    // constant buffer updating by CPU very often so we create it immediately in upload heap:
+    D3D12_HEAP_PROPERTIES defaultHeapProperties = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD);
+    D3D12_RESOURCE_DESC constantBufferDesc = CD3DX12_RESOURCE_DESC::Buffer(elementByteSize);
+    D3D_ASSERT(d3d->m_device->CreateCommittedResource(
+        &defaultHeapProperties,
+        D3D12_HEAP_FLAG_NONE,
+        &constantBufferDesc,
+        D3D12_RESOURCE_STATE_GENERIC_READ,
+        nullptr,
+        IID_PPV_ARGS(&m_constantBuffer)));
+
+    m_constantBufferGpuVirtualAddress = m_constantBuffer->GetGPUVirtualAddress();
+
+    // create descriptor (view):
+    D3D12_CONSTANT_BUFFER_VIEW_DESC cbvDesc = {};
+    cbvDesc.BufferLocation = m_constantBufferGpuVirtualAddress;
+    cbvDesc.SizeInBytes = elementByteSize;
+
+    d3d->m_device->CreateConstantBufferView(
+        &cbvDesc,
+        GetConstantBufferView());
+}
+
+void Renderer::UpdateConstantBuffer(const ConstantBufferData* data)
+{
+    void *mappedData = nullptr;
+    m_constantBuffer->Map(0, nullptr, &mappedData);
+
+    memcpy(mappedData, data, sizeof(ConstantBufferData));
+
+    m_constantBuffer->Unmap(0, nullptr);
+    mappedData = nullptr;
+}
+
+void Renderer::BindConstantBuffer()
+{
+    const Direct3D *d3d = Direct3D::GetInstance();
+
+    ID3D12DescriptorHeap *descriptorHeaps[] = { m_cbvSrvUavHeap.Get() };
+    d3d->m_commandList->SetDescriptorHeaps(_countof(descriptorHeaps), descriptorHeaps);
+
+    CD3DX12_GPU_DESCRIPTOR_HANDLE cbvHandle(m_cbvSrvUavHeap->GetGPUDescriptorHandleForHeapStart());
+    cbvHandle.Offset(0, m_cbvSrvUavDescriptorSize);
+
+    d3d->m_commandList->SetGraphicsRootDescriptorTable(0, cbvHandle);
 }
 
 void Renderer::CreateRootSignature()
 {
+    // merge descriptors in descriptor ranges:
+    CD3DX12_DESCRIPTOR_RANGE descRange[1];
+    descRange[0].Init(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, 1, 0);
+
+    // create root parameters (descriptor tables):
+    CD3DX12_ROOT_PARAMETER rootParameters[1];
+    rootParameters[0].InitAsDescriptorTable(1, &descRange[0]);
+
     CD3DX12_ROOT_SIGNATURE_DESC rootSignatureDesc;
     rootSignatureDesc.Init(
-        0,
-        nullptr,
+        1,
+        rootParameters,
         0,
         nullptr,
         D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT);
